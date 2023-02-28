@@ -13,33 +13,18 @@ namespace sr
 	/// \param colBased[in] true:列条纹 false:行条纹
 bool Encoder_Gray(std::vector<std::shared_ptr<cv::Mat>> &grayCodeMats, int order, bool colBased = true);
 
+bool getGrayCode(std::vector<std::vector<bool>> &grayCode, int order);
 
-// PhaseShifting生成
-class Encoder_Phase
-{
-private:
-	int m_numMat; // Mat数目
-	int m_pixPeriod; // 每周期的pix数目
-	cv::Mat *m_PSMat; // phaseshifting对应的图像
+bool Encoder_GrayCodeImg(std::vector<std::shared_ptr<cv::Mat>> &grayCodeImgs,
+                         int projectorWidth,
+                         int projectorHeight,
+                         int pixelPerPeriod,
+                         int order,
+                         bool colBased = true);
 
-	int m_resRow; // 图像的行分辨率
-	int m_resCol; // 图像的列分辨率
-	bool m_colBased; // 是否按照列来绘制
+bool Encoder_PhaseImg(std::vector<std::shared_ptr<cv::Mat>> &PhaseImgImgs, int projectorWidth, int projectorHeight, int pixelPerPeriod, bool colBased = true);
 
-	std::string m_filePath; // 存储路径名
-	std::string m_matName; // 图像名
-	std::string m_matEnd; // 图像后缀名
 
-	bool DrawMat(); // 根据PS内容，绘制图像
-	bool WriteData(); // 输出到文件
-
-public:
-	Encoder_Phase();
-	~Encoder_Phase();
-	bool Encode(int pixPeriod, bool colBased);
-	bool SetMatFileName(std::string filePath, std::string matName, std::string matEnd);
-	void Visualization();
-};
 
 
 } // namespace sr

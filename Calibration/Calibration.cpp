@@ -1,12 +1,12 @@
 #include "Calibration.h"
 
-#include "CalibrationData.hpp"
-#include "structured_light.hpp"
-
 #include <opencv2/calib3d/calib3d.hpp>
 #include <opencv2/core/core.hpp>
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
+
+#include "CalibrationData.hpp"
+#include "structured_light.hpp"
 namespace sr
 {
 
@@ -198,18 +198,25 @@ void image_rectify(std::string calib_file, const cv::Mat* left_image, const cv::
 	cv::Vec3d T;
 	cv::Mat D1, D2;
 	cv::FileStorage fs1(calib_file, cv::FileStorage::READ);
+	if (!fs1.isOpened())
+	{
+		std::cout << "load file error" << std::endl;
+	}
+	else
+	{
+		std::cout << "load file ok" << std::endl;
+	}
+	
+
 	fs1["K1"] >> K1;
 	fs1["K2"] >> K2;
 	fs1["D1"] >> D1;
 	fs1["D2"] >> D2;
-	fs1["R"] >> R;
-	fs1["T"] >> T;
 
 	fs1["R1"] >> R1;
 	fs1["R2"] >> R2;
 	fs1["P1"] >> P1;
 	fs1["P2"] >> P2;
-	fs1["Q"] >> Q;
 
 	//矫正
 	cv::Mat lmapx, lmapy, rmapx, rmapy;
@@ -343,6 +350,7 @@ bool projector_Camera_Calibration(std::vector<std::vector<std::shared_ptr<cv::Ma
 	{
 		if (!extract_chessboard_corners(*(images_list[i].front().get()), border_size, square_size, corners_camera[i], corners_world[i]))
 		{
+			std::cout << "extract_chessboard_corners error" << std::endl;
 			return false;
 		}
 	}
@@ -609,7 +617,28 @@ bool projector_Camera_Calibration(std::vector<std::vector<std::shared_ptr<cv::Ma
 	//print to console
 	calib.display();
 	//save to file
-	calib.save_calibration("D:/calib_file.yml");
+	calib.save_calibration("D:/calib_file_0.yml");
+	
+
+	//求解矫正参数
+	cv::Mat R1, R2, P1, P2, Q;
+	cv::stereoRectify(calib.cam_K, calib.cam_kc, calib.proj_K, calib.proj_kc, image_size, calib.R, calib.T, R1, R2, P1, P2, Q);
+	cv::FileStorage fs("D:/calib_file.yml", cv::FileStorage::WRITE);
+	fs << "K1" << calib.cam_K;
+	fs << "D1" << calib.cam_kc;
+	fs << "K2" << calib.proj_K;
+	fs << "D2" << calib.proj_kc;
+	fs << "R" << calib.R;
+	fs << "T" << calib.T;
+	fs << "E" << E;
+	fs << "F" << F;
+
+	fs << "R1" << R1;
+	fs << "R2" << R2;
+	fs << "P1" << P1;
+	fs << "P2" << P2;
+	fs << "Q" << Q;
+	fs.release();
 
 	return true;
 }

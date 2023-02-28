@@ -116,16 +116,17 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>NDEBUG;_CONSOLE;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>NDEBUG;_CONSOLE;_CRT_SECURE_NO_WARNINGS;_USE_MATH_DEFINES;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>D:\ThirdPartyLibrary\opencv3.4.16\build\include;D:\ThirdPartyLibrary\trimesh2\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>D:\ThirdPartyLibrary\opencv3.4.16\build\include;D:\ThirdPartyLibrary\trimesh2\include;C:\Program Files (x86)\MVS\Development\Includes;D:\ThirdPartyLibrary\eigen3.3.9;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <OpenMPSupport>true</OpenMPSupport>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>D:\ThirdPartyLibrary\opencv3.4.16\build\x64\vc15\lib\opencv_world3416.lib;D:\ThirdPartyLibrary\trimesh2\lib.x64\trimesh2.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>D:\ThirdPartyLibrary\opencv3.4.16\build\x64\vc15\lib\opencv_world3416.lib;D:\ThirdPartyLibrary\trimesh2\lib.x64\trimesh2.lib;C:\Program Files (x86)\MVS\Development\Libraries\win64\MvCameraControl.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
@@ -133,6 +134,7 @@
     <ClCompile Include="Calibration\CalibrationData.cpp" />
     <ClCompile Include="Calibration\Encoder.cpp" />
     <ClCompile Include="Calibration\structured_light.cpp" />
+    <ClCompile Include="MvCamera\MvCamera.cpp" />
     <ClCompile Include="Reconstruction\Reconstruction.cpp" />
     <ClCompile Include="StereoReconstruction.cpp" />
   </ItemGroup>
@@ -141,6 +143,7 @@
     <ClInclude Include="Calibration\CalibrationData.hpp" />
     <ClInclude Include="Calibration\Encoder.h" />
     <ClInclude Include="Calibration\structured_light.hpp" />
+    <ClInclude Include="MvCamera\MvCamera.h" />
     <ClInclude Include="Reconstruction\Reconstruction.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

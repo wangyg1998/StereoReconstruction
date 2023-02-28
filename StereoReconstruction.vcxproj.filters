@@ -19,11 +19,11 @@
     <Filter Include="源文件\Reconstruction">
       <UniqueIdentifier>{7b6588ad-15ef-44dc-bbeb-411f05dde988}</UniqueIdentifier>
     </Filter>
+    <Filter Include="源文件\MvCamera">
+      <UniqueIdentifier>{60d54cf9-9c1a-41e7-adcf-33513d8ac925}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="StereoReconstruction.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
     <ClCompile Include="Calibration\Calibration.cpp">
       <Filter>源文件\Calibration</Filter>
     </ClCompile>
@@ -38,6 +38,12 @@
     </ClCompile>
     <ClCompile Include="Calibration\Encoder.cpp">
       <Filter>源文件\Calibration</Filter>
+    </ClCompile>
+    <ClCompile Include="StereoReconstruction.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="MvCamera\MvCamera.cpp">
+      <Filter>源文件\MvCamera</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -55,6 +61,9 @@
     </ClInclude>
     <ClInclude Include="Calibration\Encoder.h">
       <Filter>源文件\Calibration</Filter>
+    </ClInclude>
+    <ClInclude Include="MvCamera\MvCamera.h">
+      <Filter>源文件\MvCamera</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

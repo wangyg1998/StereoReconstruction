@@ -17,7 +17,7 @@ void calib_extrinisic(std::string left_intrinsic_file,
                       std::vector<std::shared_ptr<cv::Mat>> left_images,
                       std::vector<std::shared_ptr<cv::Mat>> right_images);
 
-/// \brief 双目图像矫正
+/// \brief 双目图像矫正（畸变校正+ 立体矫正）
 void image_rectify(std::string calib_file, const cv::Mat* left_image, const cv::Mat* right_image, cv::Mat* rectified_left, cv::Mat* rectified_right);
 
 /// \brief 求相机和投影仪的内参，并进行立体标定(相机到投影仪的R,T)

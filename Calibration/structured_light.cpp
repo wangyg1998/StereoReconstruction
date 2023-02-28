@@ -298,8 +298,8 @@ cv::Mat sl::estimate_direct_light(const std::vector<std::shared_ptr<cv::Mat>>& i
 
 	if (count > COUNT)
 	{
-		count = COUNT;
 		std::cout << "WARNING: Using only " << COUNT << " of " << count << std::endl;
+		count = COUNT;
 	}
 
 	for (unsigned i = 0; i < count; i++)
