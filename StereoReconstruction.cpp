@@ -218,7 +218,7 @@ int main()
 			*images[i].get() = cv::imread(files[i], CV_LOAD_IMAGE_GRAYSCALE);
 		}
 	}
-	sr::projector_Camera_Calibration(images_list_, 11, 8, 15, 1920, 1080);
+	sr::projector_Camera_Calibration(images_list_, pathPrefix + "calib.yml", 11, 8, 15, 1920, 1080);
 
 	//单目重建数据采集
 #elif 0
@@ -516,16 +516,14 @@ int main()
 	for (int i = 0; i < leftFile.size(); ++i)
 	{
 		leftImages[i].reset(new cv::Mat);
-		*leftImages[i].get() = cv::imread(leftFile[i]);
+		*leftImages[i].get() = cv::imread(leftFile[i], CV_LOAD_IMAGE_GRAYSCALE);
 	}
 	for (int i = 0; i < rightFile.size(); ++i)
 	{
 		rightImages[i].reset(new cv::Mat);
-		*rightImages[i].get() = cv::imread(rightFile[i]);
+		*rightImages[i].get() = cv::imread(rightFile[i], CV_LOAD_IMAGE_GRAYSCALE);
 	}
-	sr::calib_intrinsic(leftImages, 11, 8, 15, pathPrefix + "intrinsic_left.yml");
-	sr::calib_intrinsic(rightImages, 11, 8, 15, pathPrefix + "intrinsic_right.yml");
-	sr::calib_stereo(pathPrefix + "intrinsic_left.yml", pathPrefix + "intrinsic_right.yml", pathPrefix + "calib.yml", leftImages, rightImages);
+	sr::calib_stereo(leftImages, rightImages, 11, 8, 15, pathPrefix + "calib.yml");
 
 	sr::undistort_rectify(pathPrefix + "calib.yml", leftImages[0].get(), rightImages[0].get(), leftImages[0].get(), rightImages[0].get());
 	cv::imwrite(pathPrefix + "left.bmp", *leftImages[0].get());
@@ -534,8 +532,8 @@ int main()
 	//双目重建
 #elif 1
 	std::vector<std::string> leftFile, rightFile;
-	getAllFiles(pathPrefix +  "Dual_Recon_Imgs\\left", leftFile, ".bmp");
-	getAllFiles(pathPrefix +  "Dual_Recon_Imgs\\right", rightFile, ".bmp");
+	getAllFiles(pathPrefix + "Dual_Recon_Imgs\\left", leftFile, ".bmp");
+	getAllFiles(pathPrefix + "Dual_Recon_Imgs\\right", rightFile, ".bmp");
 	std::vector<std::shared_ptr<cv::Mat>> leftImage(leftFile.size()), rightImage(rightFile.size());
 	for (int i = 0; i < leftFile.size(); ++i)
 	{
@@ -553,10 +551,10 @@ int main()
 	//图像矫正
 	for (int i = 0; i < leftImage.size(); ++i)
 	{
-		sr::undistort_rectify(pathPrefix +  "calib.yml", leftImage[i].get(), rightImage[i].get(), leftImage[i].get(), rightImage[i].get());
+		sr::undistort_rectify(pathPrefix + "calib.yml", leftImage[i].get(), rightImage[i].get(), leftImage[i].get(), rightImage[i].get());
 		if (i == 1)
 		{
-			cv::imwrite(pathPrefix +  "left.bmp", *leftImage[i].get());
+			cv::imwrite(pathPrefix + "left.bmp", *leftImage[i].get());
 			cv::imwrite(pathPrefix + "right.bmp", *rightImage[i].get());
 		}
 	}

@@ -35,7 +35,56 @@ static double computeReprojectionErrors(const std::vector<std::vector<cv::Point3
 	return std::sqrt(totalErr / totalPoints);
 }
 
-void calib_intrinsic(std::vector<std::shared_ptr<cv::Mat>> images, int corners_per_row, int corners_per_col, float square_size, std::string file_name)
+static bool cornerDetect(std::shared_ptr<cv::Mat> image,
+                         cv::Size board_size,
+                         float square_size,
+                         std::vector<cv::Point2f>& image_points,
+                         std::vector<cv::Point3f>& object_points)
+{
+	image_points.clear();
+	object_points.clear();
+
+	if (image->size().width < 1080)
+	{
+		if (!cv::findChessboardCorners(*image.get(), board_size, image_points, CV_CALIB_CB_ADAPTIVE_THRESH | CV_CALIB_CB_FILTER_QUADS))
+		{
+			return false;
+		}
+	}
+	else
+	{
+		float scale = 1024.f / static_cast<float>(image->size().width);
+		cv::Size targetSize(image->size().width * scale, image->size().height * scale);
+		cv::Mat smallImg;
+		cv::resize(*image.get(), smallImg, targetSize);
+		if (!cv::findChessboardCorners(smallImg, board_size, image_points, CV_CALIB_CB_ADAPTIVE_THRESH | CV_CALIB_CB_FILTER_QUADS))
+		{
+			return false;
+		}
+		for (auto& pt : image_points)
+		{
+			pt /= scale;
+		}
+	}
+	
+
+	cornerSubPix(*image.get(), image_points, cv::Size(5, 5), cv::Size(-1, -1), cv::TermCriteria(CV_TERMCRIT_EPS | CV_TERMCRIT_ITER, 30, 0.1));
+	//drawChessboardCorners(*image.get(), board_size, image_points, true);
+	//cv::imshow("corners", *image.get());
+	//cv::waitKey(0);
+
+	for (int i = 0; i < board_size.height; i++)
+	{
+		for (int j = 0; j < board_size.width; j++)
+		{
+			object_points.push_back(cv::Point3f((float)j * square_size, (float)i * square_size, 0));
+		}
+	}
+
+	return true;
+}
+
+bool calib_intrinsic(std::vector<std::shared_ptr<cv::Mat>> images, int corners_per_row, int corners_per_col, float square_size, std::string file_name)
 {
 	cv::Size board_size = cv::Size(corners_per_row, corners_per_col);
 	std::vector<std::vector<cv::Point3f>> object_points;
@@ -43,34 +92,18 @@ void calib_intrinsic(std::vector<std::shared_ptr<cv::Mat>> images, int corners_p
 	cv::Size img_size = images.front()->size();
 	for (int k = 0; k < images.size(); k++)
 	{
-		cv::Mat &img = *images[k].get(), gray;
-		cv::cvtColor(img, gray, CV_BGR2GRAY);
-		bool found = false;
-		std::vector<cv::Point2f> corners;
-		found = cv::findChessboardCorners(img, board_size, corners, CV_CALIB_CB_ADAPTIVE_THRESH | CV_CALIB_CB_FILTER_QUADS);
-		if (found)
+		std::vector<cv::Point3f> t_object_points;
+		std::vector<cv::Point2f> t_image_points;
+		if (cornerDetect(images[k], board_size, square_size, t_image_points, t_object_points))
 		{
-			cornerSubPix(gray, corners, cv::Size(5, 5), cv::Size(-1, -1), cv::TermCriteria(CV_TERMCRIT_EPS | CV_TERMCRIT_ITER, 30, 0.1));
-			drawChessboardCorners(gray, board_size, corners, found);
-			//cv::imshow("corners", gray);
-			//cv::waitKey(0);
+			object_points.push_back(t_object_points);
+			image_points.push_back(t_image_points);
+			std::cout << "findChessboardCorners ok: " << k << std::endl;
 		}
-
-		std::vector<cv::Point3f> obj;
-		for (int i = 0; i < corners_per_col; i++)
-		{
-			for (int j = 0; j < corners_per_row; j++)
-			{
-				obj.push_back(cv::Point3f((float)j * square_size, (float)i * square_size, 0));
-			}
-		}
-
-		if (found)
-		{
-			std::cout << k << ". Found corners!" << std::endl;
-			image_points.push_back(corners);
-			object_points.push_back(obj);
-		}
+	}
+	if (object_points.size() < 3)
+	{
+		return false;
 	}
 
 	cv::Mat K;
@@ -80,7 +113,6 @@ void calib_intrinsic(std::vector<std::shared_ptr<cv::Mat>> images, int corners_p
 	flag |= CV_CALIB_FIX_K4;
 	flag |= CV_CALIB_FIX_K5;
 	calibrateCamera(object_points, image_points, img_size, K, D, rvecs, tvecs, flag);
-
 	std::cout << "Calibration error: " << computeReprojectionErrors(object_points, image_points, rvecs, tvecs, K, D) << std::endl;
 
 	cv::FileStorage fs(file_name, cv::FileStorage::WRITE);
@@ -90,80 +122,60 @@ void calib_intrinsic(std::vector<std::shared_ptr<cv::Mat>> images, int corners_p
 	fs << "corners_per_col" << corners_per_col;
 	fs << "square_size" << square_size;
 	printf("Done Calibration\n");
+	return true;
 }
 
-void calib_stereo(std::string left_intrinsic_file,
-                  std::string right_intrinsic_file,
-                  std::string calib_file,
-                  std::vector<std::shared_ptr<cv::Mat>> left_images,
-                  std::vector<std::shared_ptr<cv::Mat>> right_images)
+bool calib_stereo(std::vector<std::shared_ptr<cv::Mat>> left_images,
+                  std::vector<std::shared_ptr<cv::Mat>> right_images,
+                  int corners_per_row,
+                  int corners_per_col,
+                  float square_size,
+                  std::string calib_file)
 {
-	//加载内参
-	cv::FileStorage fsl(left_intrinsic_file, cv::FileStorage::READ);
-	cv::FileStorage fsr(right_intrinsic_file, cv::FileStorage::READ);
-	cv::Size board_size = cv::Size(fsl["corners_per_row"], fsl["corners_per_col"]);
-	float square_size = fsl["square_size"];
-	cv::Mat K1, K2;
-	cv::Mat D1, D2;
-	fsl["K"] >> K1;
-	fsr["K"] >> K2;
-	fsl["D"] >> D1;
-	fsr["D"] >> D2;
-
+	cv::Size board_size = cv::Size(corners_per_row, corners_per_col);
 	//检测角点
 	std::vector<std::vector<cv::Point3f>> object_points;
-	std::vector<std::vector<cv::Point2f>> imagePoints1, imagePoints2;
 	std::vector<std::vector<cv::Point2f>> left_img_points, right_img_points;
 	for (int i = 0; i < left_images.size(); ++i)
 	{
-		cv::Mat gray1, gray2;
-		cvtColor(*left_images[i].get(), gray1, CV_BGR2GRAY);
-		cvtColor(*right_images[i].get(), gray2, CV_BGR2GRAY);
-
-		bool found1 = false, found2 = false;
-		std::vector<cv::Point2f> corners1, corners2;
-		found1 = cv::findChessboardCorners(*left_images[i].get(), board_size, corners1, CV_CALIB_CB_ADAPTIVE_THRESH | CV_CALIB_CB_FILTER_QUADS);
-		found2 = cv::findChessboardCorners(*right_images[i].get(), board_size, corners2, CV_CALIB_CB_ADAPTIVE_THRESH | CV_CALIB_CB_FILTER_QUADS);
-
-		if (!found1 || !found2)
+		std::vector<cv::Point3f> t_object_points;
+		std::vector<cv::Point2f> t_left_img_points, t_right_img_points;
+		if (!cornerDetect(left_images[i], board_size, square_size, t_left_img_points, t_object_points))
 		{
-			std::cout << "Chessboard find error!" << std::endl;
 			continue;
 		}
-		if (found1)
+		if (!cornerDetect(right_images[i], board_size, square_size, t_right_img_points, t_object_points))
 		{
-			cv::cornerSubPix(gray1, corners1, cv::Size(5, 5), cv::Size(-1, -1), cv::TermCriteria(CV_TERMCRIT_EPS | CV_TERMCRIT_ITER, 30, 0.1));
-			//cv::drawChessboardCorners(gray1, board_size, corners1, found1);
+			continue;
 		}
-		if (found2)
-		{
-			cv::cornerSubPix(gray2, corners2, cv::Size(5, 5), cv::Size(-1, -1), cv::TermCriteria(CV_TERMCRIT_EPS | CV_TERMCRIT_ITER, 30, 0.1));
-			//cv::drawChessboardCorners(gray2, board_size, corners2, found2);
-		}
-
-		std::vector<cv::Point3f> obj;
-		for (int i = 0; i < board_size.height; i++)
-			for (int j = 0; j < board_size.width; j++)
-				obj.push_back(cv::Point3f((float)j * square_size, (float)i * square_size, 0));
-
-		if (found1 && found2)
-		{
-			std::cout << i << ". Found corners!" << std::endl;
-			imagePoints1.push_back(corners1);
-			imagePoints2.push_back(corners2);
-			object_points.push_back(obj);
-		}
+		object_points.push_back(t_object_points);
+		left_img_points.push_back(t_left_img_points);
+		right_img_points.push_back(t_right_img_points);
+		std::cout << "findChessboardCorners ok: " << i << std::endl;
 	}
-	for (int i = 0; i < imagePoints1.size(); i++)
+	if (object_points.size() < 3)
 	{
-		std::vector<cv::Point2f> v1, v2;
-		for (int j = 0; j < imagePoints1[i].size(); j++)
-		{
-			v1.push_back(cv::Point2f((double)imagePoints1[i][j].x, (double)imagePoints1[i][j].y));
-			v2.push_back(cv::Point2f((double)imagePoints2[i][j].x, (double)imagePoints2[i][j].y));
-		}
-		left_img_points.push_back(v1);
-		right_img_points.push_back(v2);
+		return false;
+	}
+
+	//求解内参
+	cv::Mat K1, K2;
+	cv::Mat D1, D2;
+	{
+		std::vector<cv::Mat> rvecs, tvecs;
+		int flag = 0;
+		flag |= CV_CALIB_FIX_K4;
+		flag |= CV_CALIB_FIX_K5;
+		calibrateCamera(object_points, left_img_points, left_images.front()->size(), K1, D1, rvecs, tvecs, flag);
+		std::cout << "Calibration error: " << computeReprojectionErrors(object_points, left_img_points, rvecs, tvecs, K1, D1) << std::endl;
+	}
+	{
+		std::vector<cv::Mat> rvecs, tvecs;
+		int flag = 0;
+		flag |= CV_CALIB_FIX_K4;
+		flag |= CV_CALIB_FIX_K5;
+		calibrateCamera(object_points, right_img_points, left_images.front()->size(), K2, D2, rvecs, tvecs, flag);
+		std::cout << "Calibration error: " << computeReprojectionErrors(object_points, right_img_points, rvecs, tvecs, K2, D2) << std::endl;
 	}
 
 	//求解外参
@@ -316,6 +328,7 @@ static bool decode_gray_set(std::vector<std::shared_ptr<cv::Mat>> images,
 }
 
 bool projector_Camera_Calibration(std::vector<std::vector<std::shared_ptr<cv::Mat>>> images_list,
+                                  std::string calib_file,
                                   int corners_per_row,
                                   int corners_per_col,
                                   float square_edge_length,
@@ -616,12 +629,12 @@ bool projector_Camera_Calibration(std::vector<std::vector<std::shared_ptr<cv::Ma
 	//print to console
 	calib.display();
 	//save to file
-	calib.save_calibration("D:/calib_file_0.yml");
+	calib.save_calibration(calib_file + ".yml");
 
 	//求解矫正参数
 	cv::Mat R1, R2, P1, P2, Q;
 	cv::stereoRectify(calib.cam_K, calib.cam_kc, calib.proj_K, calib.proj_kc, image_size, calib.R, calib.T, R1, R2, P1, P2, Q);
-	cv::FileStorage fs("D:/calib_file.yml", cv::FileStorage::WRITE);
+	cv::FileStorage fs(calib_file, cv::FileStorage::WRITE);
 	fs << "K1" << calib.cam_K;
 	fs << "D1" << calib.cam_kc;
 	fs << "K2" << calib.proj_K;
