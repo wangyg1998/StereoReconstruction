@@ -5,7 +5,6 @@
 *.ilk
 *.pdb
 *.recipe
-*.bmp
 *.cmake
 *.bin
 *.idb
