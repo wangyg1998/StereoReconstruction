@@ -407,7 +407,6 @@ void reconstruct_model_patch_center(cv::Mat const &pattern_image, cv::Mat const 
 		double distance = max_dist; //quality meassure
 		cv::Point3d p; //reconstructed point
 		triangulate_stereo(calib.cam_K, calib.cam_kc, calib.proj_K, calib.proj_kc, Rt, calib.T, cam, proj, p, &distance);
-		debug->vertices.push_back(trimesh::point(p.x, p.y, p.z));
 		if (distance < max_dist)
 		{ //good point
 

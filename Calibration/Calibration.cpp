@@ -9,13 +9,13 @@
 #include "structured_light.hpp"
 namespace sr
 {
-
-double computeReprojectionErrors(const std::vector<std::vector<cv::Point3f>>& objectPoints,
-                                 const std::vector<std::vector<cv::Point2f>>& imagePoints,
-                                 const std::vector<cv::Mat>& rvecs,
-                                 const std::vector<cv::Mat>& tvecs,
-                                 const cv::Mat& cameraMatrix,
-                                 const cv::Mat& distCoeffs)
+/// \brief 计算重投影误差
+static double computeReprojectionErrors(const std::vector<std::vector<cv::Point3f>>& objectPoints,
+                                        const std::vector<std::vector<cv::Point2f>>& imagePoints,
+                                        const std::vector<cv::Mat>& rvecs,
+                                        const std::vector<cv::Mat>& tvecs,
+                                        const cv::Mat& cameraMatrix,
+                                        const cv::Mat& distCoeffs)
 {
 	std::vector<cv::Point2f> imagePoints2;
 	int i, totalPoints = 0;
@@ -35,7 +35,7 @@ double computeReprojectionErrors(const std::vector<std::vector<cv::Point3f>>& ob
 	return std::sqrt(totalErr / totalPoints);
 }
 
-void camera_intrinsic(std::vector<std::shared_ptr<cv::Mat>> images, int corners_per_row, int corners_per_col, float square_size, std::string file_name)
+void calib_intrinsic(std::vector<std::shared_ptr<cv::Mat>> images, int corners_per_row, int corners_per_col, float square_size, std::string file_name)
 {
 	cv::Size board_size = cv::Size(corners_per_row, corners_per_col);
 	std::vector<std::vector<cv::Point3f>> object_points;
@@ -57,9 +57,9 @@ void camera_intrinsic(std::vector<std::shared_ptr<cv::Mat>> images, int corners_
 		}
 
 		std::vector<cv::Point3f> obj;
-		for (int i = 0; i < corners_per_row; i++)
+		for (int i = 0; i < corners_per_col; i++)
 		{
-			for (int j = 0; j < corners_per_col; j++)
+			for (int j = 0; j < corners_per_row; j++)
 			{
 				obj.push_back(cv::Point3f((float)j * square_size, (float)i * square_size, 0));
 			}
@@ -92,16 +92,16 @@ void camera_intrinsic(std::vector<std::shared_ptr<cv::Mat>> images, int corners_
 	printf("Done Calibration\n");
 }
 
-void calib_extrinisic(std::string left_intrinsic_file,
-                      std::string right_intrinsic_file,
-                      std::string calib_file,
-                      std::vector<std::shared_ptr<cv::Mat>> left_images,
-                      std::vector<std::shared_ptr<cv::Mat>> right_images)
+void calib_stereo(std::string left_intrinsic_file,
+                  std::string right_intrinsic_file,
+                  std::string calib_file,
+                  std::vector<std::shared_ptr<cv::Mat>> left_images,
+                  std::vector<std::shared_ptr<cv::Mat>> right_images)
 {
 	//加载内参
 	cv::FileStorage fsl(left_intrinsic_file, cv::FileStorage::READ);
 	cv::FileStorage fsr(right_intrinsic_file, cv::FileStorage::READ);
-	cv::Size board_size = cv::Size(fsl["board_width"], fsl["board_height"]);
+	cv::Size board_size = cv::Size(fsl["corners_per_row"], fsl["corners_per_col"]);
 	float square_size = fsl["square_size"];
 	cv::Mat K1, K2;
 	cv::Mat D1, D2;
@@ -190,7 +190,7 @@ void calib_extrinisic(std::string left_intrinsic_file,
 	fs1 << "Q" << Q;
 }
 
-void image_rectify(std::string calib_file, const cv::Mat* left_image, const cv::Mat* right_image, cv::Mat* rectified_left, cv::Mat* rectified_right)
+void undistort_rectify(std::string calib_file, const cv::Mat* left_image, const cv::Mat* right_image, cv::Mat* rectified_left, cv::Mat* rectified_right)
 {
 	//加载标定文件
 	cv::Mat R1, R2, P1, P2, Q;
@@ -206,7 +206,6 @@ void image_rectify(std::string calib_file, const cv::Mat* left_image, const cv::
 	{
 		std::cout << "load file ok" << std::endl;
 	}
-	
 
 	fs1["K1"] >> K1;
 	fs1["K2"] >> K2;
@@ -618,7 +617,6 @@ bool projector_Camera_Calibration(std::vector<std::vector<std::shared_ptr<cv::Ma
 	calib.display();
 	//save to file
 	calib.save_calibration("D:/calib_file_0.yml");
-	
 
 	//求解矫正参数
 	cv::Mat R1, R2, P1, P2, Q;
