@@ -362,7 +362,7 @@ cv::Mat sl::get_gray_image(const std::string& filename)
 	{
 		//gray scale
 		cv::Mat gray_image;
-		cvtColor(rgb_image, gray_image, CV_BGR2GRAY);
+		cvtColor(rgb_image, gray_image, cv::COLOR_BGR2GRAY);
 		return gray_image;
 	}
 	return cv::Mat();

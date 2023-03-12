@@ -26,7 +26,7 @@ static double computeReprojectionErrors(const std::vector<std::vector<cv::Point3
 	for (i = 0; i < (int)objectPoints.size(); ++i)
 	{
 		cv::projectPoints(cv::Mat(objectPoints[i]), rvecs[i], tvecs[i], cameraMatrix, distCoeffs, imagePoints2);
-		err = cv::norm(cv::Mat(imagePoints[i]), cv::Mat(imagePoints2), CV_L2);
+		err = cv::norm(cv::Mat(imagePoints[i]), cv::Mat(imagePoints2));
 		int n = (int)objectPoints[i].size();
 		perViewErrors[i] = (float)std::sqrt(err * err / n);
 		totalErr += err * err;
@@ -46,7 +46,7 @@ static bool cornerDetect(std::shared_ptr<cv::Mat> image,
 
 	if (image->size().width < 1080)
 	{
-		if (!cv::findChessboardCorners(*image.get(), board_size, image_points, CV_CALIB_CB_ADAPTIVE_THRESH | CV_CALIB_CB_FILTER_QUADS))
+		if (!cv::findChessboardCorners(*image.get(), board_size, image_points))
 		{
 			return false;
 		}
@@ -57,7 +57,7 @@ static bool cornerDetect(std::shared_ptr<cv::Mat> image,
 		cv::Size targetSize(image->size().width * scale, image->size().height * scale);
 		cv::Mat smallImg;
 		cv::resize(*image.get(), smallImg, targetSize);
-		if (!cv::findChessboardCorners(smallImg, board_size, image_points, CV_CALIB_CB_ADAPTIVE_THRESH | CV_CALIB_CB_FILTER_QUADS))
+		if (!cv::findChessboardCorners(smallImg, board_size, image_points))
 		{
 			return false;
 		}
@@ -68,10 +68,17 @@ static bool cornerDetect(std::shared_ptr<cv::Mat> image,
 	}
 	
 
-	cornerSubPix(*image.get(), image_points, cv::Size(5, 5), cv::Size(-1, -1), cv::TermCriteria(CV_TERMCRIT_EPS | CV_TERMCRIT_ITER, 30, 0.1));
-	//drawChessboardCorners(*image.get(), board_size, image_points, true);
-	//cv::imshow("corners", *image.get());
-	//cv::waitKey(0);
+	cornerSubPix(*image.get(),
+	             image_points,
+	             cv::Size(5, 5),
+	             cv::Size(-1, -1),
+	             cv::TermCriteria(cv::TermCriteria::Type::EPS | cv::TermCriteria::Type::MAX_ITER, 30, 0.1));
+	/*drawChessboardCorners(*image.get(), board_size, image_points, true);
+	std::string out_win = "corners";
+	cv::namedWindow(out_win, cv::WINDOW_NORMAL);
+	cv::setWindowProperty(out_win, cv::WND_PROP_FULLSCREEN, cv::WINDOW_FULLSCREEN);
+	cv::imshow(out_win, *image.get());
+	cv::waitKey(0);*/
 
 	for (int i = 0; i < board_size.height; i++)
 	{
@@ -109,10 +116,7 @@ bool calib_intrinsic(std::vector<std::shared_ptr<cv::Mat>> images, int corners_p
 	cv::Mat K;
 	cv::Mat D;
 	std::vector<cv::Mat> rvecs, tvecs;
-	int flag = 0;
-	flag |= CV_CALIB_FIX_K4;
-	flag |= CV_CALIB_FIX_K5;
-	calibrateCamera(object_points, image_points, img_size, K, D, rvecs, tvecs, flag);
+	calibrateCamera(object_points, image_points, img_size, K, D, rvecs, tvecs);
 	std::cout << "Calibration error: " << computeReprojectionErrors(object_points, image_points, rvecs, tvecs, K, D) << std::endl;
 
 	cv::FileStorage fs(file_name, cv::FileStorage::WRITE);
@@ -155,6 +159,7 @@ bool calib_stereo(std::vector<std::shared_ptr<cv::Mat>> left_images,
 	}
 	if (object_points.size() < 3)
 	{
+		std::cout << "object_points.size(): " << object_points.size() << std::endl;
 		return false;
 	}
 
@@ -163,18 +168,12 @@ bool calib_stereo(std::vector<std::shared_ptr<cv::Mat>> left_images,
 	cv::Mat D1, D2;
 	{
 		std::vector<cv::Mat> rvecs, tvecs;
-		int flag = 0;
-		flag |= CV_CALIB_FIX_K4;
-		flag |= CV_CALIB_FIX_K5;
-		calibrateCamera(object_points, left_img_points, left_images.front()->size(), K1, D1, rvecs, tvecs, flag);
+		calibrateCamera(object_points, left_img_points, left_images.front()->size(), K1, D1, rvecs, tvecs);
 		std::cout << "Calibration error: " << computeReprojectionErrors(object_points, left_img_points, rvecs, tvecs, K1, D1) << std::endl;
 	}
 	{
 		std::vector<cv::Mat> rvecs, tvecs;
-		int flag = 0;
-		flag |= CV_CALIB_FIX_K4;
-		flag |= CV_CALIB_FIX_K5;
-		calibrateCamera(object_points, right_img_points, left_images.front()->size(), K2, D2, rvecs, tvecs, flag);
+		calibrateCamera(object_points, right_img_points, right_images.front()->size(), K2, D2, rvecs, tvecs);
 		std::cout << "Calibration error: " << computeReprojectionErrors(object_points, right_img_points, rvecs, tvecs, K2, D2) << std::endl;
 	}
 
@@ -285,7 +284,11 @@ static bool extract_chessboard_corners(const cv::Mat& gray_image,
 	}
 	if (cam_corners.size())
 	{
-		cv::cornerSubPix(gray_image, cam_corners, cv::Size(11, 11), cv::Size(-1, -1), cv::TermCriteria(CV_TERMCRIT_EPS + CV_TERMCRIT_ITER, 30, 0.1));
+		cv::cornerSubPix(gray_image,
+		                 cam_corners,
+		                 cv::Size(11, 11),
+		                 cv::Size(-1, -1),
+		                 cv::TermCriteria(cv::TermCriteria::Type::EPS + cv::TermCriteria::Type::MAX_ITER, 30, 0.1));
 	}
 	return true;
 }
@@ -432,7 +435,7 @@ bool projector_Camera_Calibration(std::vector<std::vector<std::shared_ptr<cv::Ma
 						//out_pattern = pattern;
 					}
 				}
-				cv::Mat H = cv::findHomography(img_points, proj_points, CV_RANSAC);
+				cv::Mat H = cv::findHomography(img_points, proj_points, cv::RANSAC);
 				//std::cout << " H:\n" << H << std::endl;
 				cv::Point3d Q = cv::Point3d(cv::Mat(H * cv::Mat(cv::Point3d(p.x, p.y, 1.0))));
 				q = cv::Point2f(Q.x / Q.z, Q.y / Q.z);

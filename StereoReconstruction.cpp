@@ -139,7 +139,7 @@ int main()
 	for (int i = 0; i < files.size(); ++i)
 	{
 		imgs[i].reset(new cv::Mat);
-		*imgs[i].get() = cv::imread(files[i], CV_LOAD_IMAGE_GRAYSCALE);
+		*imgs[i].get() = cv::imread(files[i], cv::IMREAD_GRAYSCALE);
 		std::cout << files[i] << std::endl;
 	}
 
@@ -215,7 +215,7 @@ int main()
 		{
 			std::cout << files[i] << std::endl;
 			images[i].reset(new cv::Mat);
-			*images[i].get() = cv::imread(files[i], CV_LOAD_IMAGE_GRAYSCALE);
+			*images[i].get() = cv::imread(files[i], cv::IMREAD_GRAYSCALE);
 		}
 	}
 	sr::projector_Camera_Calibration(images_list_, pathPrefix + "calib.yml", 11, 8, 15, 1920, 1080);
@@ -228,7 +228,7 @@ int main()
 	for (int i = 0; i < files.size(); ++i)
 	{
 		imgs[i].reset(new cv::Mat);
-		*imgs[i].get() = cv::imread(files[i], CV_LOAD_IMAGE_GRAYSCALE);
+		*imgs[i].get() = cv::imread(files[i], cv::IMREAD_GRAYSCALE);
 		std::cout << files[i] << std::endl;
 	}
 
@@ -298,7 +298,7 @@ int main()
 	for (int i = 0; i < files.size(); ++i)
 	{
 		grayCodeImgs[i].reset(new cv::Mat);
-		*grayCodeImgs[i].get() = cv::imread(files[i], CV_LOAD_IMAGE_GRAYSCALE);
+		*grayCodeImgs[i].get() = cv::imread(files[i], cv::IMREAD_GRAYSCALE);
 		std::cout << files[i] << std::endl;
 	}
 	cv::Mat pattern_image;
@@ -346,11 +346,12 @@ int main()
 		MV_CC_SetExposureAutoMode(camera.getDeviceHandle(), 0);
 		if (i == 0)
 		{
-			MV_CC_SetExposureTime(camera.getDeviceHandle(), 10000);
+			//左相机
+			MV_CC_SetExposureTime(camera.getDeviceHandle(), 60000);
 		}
 		else
 		{
-			MV_CC_SetExposureTime(camera.getDeviceHandle(), 40000);
+			MV_CC_SetExposureTime(camera.getDeviceHandle(), 150000);
 		}
 		if (camera.StartGrabbing() != MV_OK)
 		{
@@ -409,7 +410,7 @@ int main()
 	for (int i = 0; i < files.size(); ++i)
 	{
 		imgs[i].reset(new cv::Mat);
-		*imgs[i].get() = cv::imread(files[i], CV_LOAD_IMAGE_GRAYSCALE);
+		*imgs[i].get() = cv::imread(files[i], cv::IMREAD_GRAYSCALE);
 		std::cout << files[i] << std::endl;
 	}
 
@@ -449,7 +450,7 @@ int main()
 		MV_CC_SetExposureAutoMode(camera.getDeviceHandle(), 0);
 		if (i == 0)
 		{
-			MV_CC_SetExposureTime(camera.getDeviceHandle(), 4000);
+			MV_CC_SetExposureTime(camera.getDeviceHandle(), 5000);
 		}
 		else
 		{
@@ -470,7 +471,7 @@ int main()
 	for (int i = 0; i < imgs.size(); ++i)
 	{
 		cv::imshow(out_win, *imgs[i].get());
-		cv::waitKey(50000);
+		cv::waitKey(5000);
 		for (int j = 0; j < cameras.size(); ++j)
 		{
 			MV_FRAME_OUT frame;
@@ -508,22 +509,27 @@ int main()
 	}
 
 	//双目标定
-#elif 0
+#elif 1
 	std::vector<std::string> leftFile, rightFile;
 	getAllFiles(pathPrefix + "Dual_Calib_Imgs\\left", leftFile, "bmp");
 	getAllFiles(pathPrefix + "Dual_Calib_Imgs\\right", rightFile, "bmp");
+	//getAllFiles("D:\\Z_TestFolder\\structured_light_scanner\\myimages\\Model1\\Calib\\L", leftFile, "bmp");
+	//getAllFiles("D:\\Z_TestFolder\\structured_light_scanner\\myimages\\Model1\\Calib\\R", rightFile, "bmp");
 	std::vector<std::shared_ptr<cv::Mat>> leftImages(leftFile.size()), rightImages(rightFile.size());
 	for (int i = 0; i < leftFile.size(); ++i)
 	{
 		leftImages[i].reset(new cv::Mat);
-		*leftImages[i].get() = cv::imread(leftFile[i], CV_LOAD_IMAGE_GRAYSCALE);
+		*leftImages[i].get() = cv::imread(leftFile[i], cv::IMREAD_GRAYSCALE);
+		std::cout << leftFile[i] << std::endl;
 	}
 	for (int i = 0; i < rightFile.size(); ++i)
 	{
 		rightImages[i].reset(new cv::Mat);
-		*rightImages[i].get() = cv::imread(rightFile[i], CV_LOAD_IMAGE_GRAYSCALE);
+		*rightImages[i].get() = cv::imread(rightFile[i], cv::IMREAD_GRAYSCALE);
+		std::cout << rightFile[i] << std::endl;
 	}
 	sr::calib_stereo(leftImages, rightImages, 11, 8, 15, pathPrefix + "calib.yml");
+	//sr::calib_stereo(leftImages, rightImages, 7, 6, 15, pathPrefix + "calib.yml");
 
 	sr::undistort_rectify(pathPrefix + "calib.yml", leftImages[0].get(), rightImages[0].get(), leftImages[0].get(), rightImages[0].get());
 	cv::imwrite(pathPrefix + "left.bmp", *leftImages[0].get());
@@ -534,17 +540,19 @@ int main()
 	std::vector<std::string> leftFile, rightFile;
 	getAllFiles(pathPrefix + "Dual_Recon_Imgs\\left", leftFile, ".bmp");
 	getAllFiles(pathPrefix + "Dual_Recon_Imgs\\right", rightFile, ".bmp");
+	//getAllFiles("D:\\Z_TestFolder\\structured_light_scanner\\myimages\\Model1\\L", leftFile, ".bmp");
+	//getAllFiles("D:\\Z_TestFolder\\structured_light_scanner\\myimages\\Model1\\R", rightFile, ".bmp");
 	std::vector<std::shared_ptr<cv::Mat>> leftImage(leftFile.size()), rightImage(rightFile.size());
 	for (int i = 0; i < leftFile.size(); ++i)
 	{
 		leftImage[i].reset(new cv::Mat);
-		*leftImage[i].get() = cv::imread(leftFile[i], CV_LOAD_IMAGE_GRAYSCALE);
+		*leftImage[i].get() = cv::imread(leftFile[i], cv::IMREAD_GRAYSCALE);
 		std::cout << leftFile[i] << std::endl;
 	}
 	for (int i = 0; i < rightFile.size(); ++i)
 	{
 		rightImage[i].reset(new cv::Mat);
-		*rightImage[i].get() = cv::imread(rightFile[i], CV_LOAD_IMAGE_GRAYSCALE);
+		*rightImage[i].get() = cv::imread(rightFile[i], cv::IMREAD_GRAYSCALE);
 		std::cout << rightFile[i] << std::endl;
 	}
 
@@ -577,46 +585,159 @@ int main()
 
 	//查找对应点
 	std::vector<cv::Point2f> leftPoints, rightPoints;
-	sr::find_featurepionts_single_match(leftUnwrappedPhase, rightUnwrappedPhase, leftPoints, rightPoints);
-	std::cout << "leftPoints.size(): " << leftPoints.size() << std::endl;
-
-	//最小二乘求解目标点
-	//https://www.cs.cmu.edu/~16385/s17/Slides/11.4_Triangulation.pdf
-	std::shared_ptr<trimesh::TriMesh> debug(new trimesh::TriMesh);
-	cv::FileStorage fs1(pathPrefix + "calib.yml", cv::FileStorage::READ);
-	cv::Mat P1, P2;
-	fs1["P1"] >> P1;
-	fs1["P2"] >> P2;
-	Eigen::Matrix<float, 3, 4> T1, T2;
-	cv::cv2eigen(P1, T1);
-	cv::cv2eigen(P2, T2);
-	for (int i = 0; i < leftPoints.size(); ++i)
+	for (int y = 0; y < leftUnwrappedPhase.rows; ++y)
 	{
-		const cv::Point2f& p1 = leftPoints[i];
-		const cv::Point2f& p2 = rightPoints[i];
-		Eigen::Matrix<float, 4, 4> A;
-		A.row(0) = p1.y * T1.row(2) - T1.row(1);
-		A.row(1) = T1.row(0) - p1.x * T1.row(2);
-		A.row(2) = p2.y * T2.row(2) - T2.row(1);
-		A.row(3) = T2.row(0) - p2.x * T2.row(2);
-		Eigen::EigenSolver<Eigen::MatrixXf> es(A.transpose() * A);
-		Eigen::VectorXcf eigenValues = es.eigenvalues();
-		Eigen::MatrixXcf eigenVectors = es.eigenvectors();
-		std::pair<float, int> minValue(FLT_MAX, -1);
-		for (int j = 0; j < eigenValues.size(); ++j)
+		for (int x = 0; x < leftUnwrappedPhase.cols; ++x)
 		{
-			if (eigenValues[j].real() < minValue.first)
+			float left = leftUnwrappedPhase.at<float>(y, x);
+			if (left < M_PIf * 2.f)
 			{
-				minValue.first = eigenValues[j].real();
-				minValue.second = j;
+				continue;
+			}
+			std::pair<float, int> bestMatch(FLT_MAX, -1);
+			for (int k = 0; k < rightUnwrappedPhase.cols; ++k)
+			{
+				float right = rightUnwrappedPhase.at<float>(y, k);
+				if (std::abs(left - right) < bestMatch.first)
+				{
+					bestMatch.first = std::abs(left - right);
+					bestMatch.second = k;
+				}
+			}
+			if (bestMatch.first < 0.3)
+			{
+				leftPoints.push_back(cv::Point2f(x, y));
+				rightPoints.push_back(cv::Point2f(bestMatch.second, y));
 			}
 		}
-		trimesh::point p(eigenVectors(0, minValue.second).real(), eigenVectors(1, minValue.second).real(), eigenVectors(2, minValue.second).real());
-		float scale = eigenVectors(3, minValue.second).real();
-		p /= scale;
-		debug->vertices.push_back(p);
 	}
-	debug->write(pathPrefix + "debug.ply");
+	//sr::find_featurepionts_single_match(leftUnwrappedPhase, rightUnwrappedPhase, leftPoints, rightPoints);
+	std::cout << "leftPoints.size(): " << leftPoints.size() << std::endl;
+
+	if (true)
+	{
+		//最小二乘求解目标点
+		//https://www.cs.cmu.edu/~16385/s17/Slides/11.4_Triangulation.pdf
+		std::shared_ptr<trimesh::TriMesh> debug(new trimesh::TriMesh);
+		debug->vertices.resize(leftPoints.size());
+		std::vector<bool> rmv(leftPoints.size(), true);
+		cv::FileStorage fs1(pathPrefix + "calib.yml", cv::FileStorage::READ);
+		cv::Mat P1, P2;
+		fs1["P1"] >> P1;
+		fs1["P2"] >> P2;
+		Eigen::Matrix<float, 3, 4> T1, T2;
+		cv::cv2eigen(P1, T1);
+		cv::cv2eigen(P2, T2);
+		std::cout << T1 << std::endl;
+		std::cout << T2 << std::endl;
+		Eigen::Matrix<float, 4, 4> M1, M2;
+		M1.setIdentity();
+		M2.setIdentity();
+		M1.topLeftCorner(3, 4) = T1;
+		M2.topLeftCorner(3, 4) = T2;
+		std::cout << M1 << std::endl;
+		std::cout << M2 << std::endl;
+		M1 = M1.inverse();
+		M2 = M2.inverse();
+		std::cout << M1 << std::endl;
+		std::cout << M2 << std::endl;
+#pragma omp parallel for
+		for (int i = 0; i < leftPoints.size(); ++i)
+		{
+			const cv::Point2f &p1 = leftPoints[i];
+			const cv::Point2f &p2 = rightPoints[i];
+			Eigen::Matrix<float, 4, 4> A;
+			A.row(0) = p1.y * T1.row(2) - T1.row(1);
+			A.row(1) = T1.row(0) - p1.x * T1.row(2);
+			A.row(2) = p2.y * T2.row(2) - T2.row(1);
+			A.row(3) = T2.row(0) - p2.x * T2.row(2);
+
+			Eigen::EigenSolver<Eigen::MatrixXf> es(A.transpose() * A);
+			Eigen::VectorXcf eigenValues = es.eigenvalues();
+			Eigen::MatrixXcf eigenVectors = es.eigenvectors();
+			std::pair<float, int> minValue(FLT_MAX, -1);
+			for (int j = 0; j < eigenValues.size(); ++j)
+			{
+				if (eigenValues[j].real() < minValue.first)
+				{
+					minValue.first = eigenValues[j].real();
+					minValue.second = j;
+				}
+			}
+			trimesh::point p(eigenVectors(0, minValue.second).real(), eigenVectors(1, minValue.second).real(), eigenVectors(2, minValue.second).real());
+			float scale = eigenVectors(3, minValue.second).real();
+			p /= scale;
+			debug->vertices[i] = p;
+			if (trimesh::dist(p, trimesh::point(0.f)) < 1000)
+			{
+				rmv[i] = false;
+			}
+			//if (trimesh::dist(p, trimesh::point(180, 100, 650)) < 10)
+			//{
+			//	rmv[i] = false;
+			//	std::cout << p << std::endl;
+			//	Eigen::Matrix<float, 4, 1> tp1, tp2, l, r;
+			//	tp1 << p1.x, p1.y, 1.f, 1.f;
+			//	tp2 << p2.x, p2.y, 1.f, 1.f;
+			//	l << 0.f, 0.f, 0.f, 1.f;
+			//	r << 0.f, 0.f, 0.f, 1.f;
+			//	/*std::cout << M1 * tp1 << std::endl;
+			//	std::cout << M2 * tp2 << std::endl;
+			//	std::cout << M1 * l << std::endl;
+			//	std::cout << M2 * r << std::endl;
+			//	std::cout << std::endl;*/
+
+			//	auto a = M1 * tp1;
+			//	auto b = M2 * tp2;
+			//	auto c = M1 * l;
+			//	auto d = M2 * r;
+			//	cv::Point3d a2(a(0, 0), a(1,0), a(2,0));
+			//	cv::Point3d b2(b(0, 0), b(1, 0), b(2, 0));
+			//	cv::Point3d c2(c(0, 0), c(1, 0), c(2, 0));
+			//	cv::Point3d d2(d(0, 0), d(1, 0), d(2, 0));
+
+			//	cv::Point3d direction1 = a2 - c2;
+			//	cv::Point3d direction2 = b2 - d2;
+			//	cv::Point3d result = sr::approximate_ray_intersection(direction1, c2, direction2, d2);
+			//	std::cout << result << std::endl;
+			//	std::cout << direction1 << std::endl<< direction2 << std::endl;
+			//	std::cout << std::endl;
+
+			//	debug->vertices[i] = trimesh::point(result.x, result.y, result.z);
+
+			//}
+		}
+		trimesh::remove_vertices(debug.get(), rmv);
+		debug->write(pathPrefix + "debug.ply");
+	}
+	else
+	{
+		std::shared_ptr<trimesh::TriMesh> debug(new trimesh::TriMesh);
+		cv::FileStorage fs1(pathPrefix + "calib.yml", cv::FileStorage::READ);
+		cv::Mat P1, P2;
+		fs1["P1"] >> P1;
+		fs1["P2"] >> P2;
+		cv::Mat pnts(4, leftPoints.size(), CV_64F);
+		cv::triangulatePoints(P1, P2, leftPoints, rightPoints, pnts);
+		float *pnts3D_row1 = pnts.ptr<float>(0);
+		float *pnts3D_row2 = pnts.ptr<float>(1);
+		float *pnts3D_row3 = pnts.ptr<float>(2);
+		float *pnts3D_row4 = pnts.ptr<float>(3);
+		for (int i = 0; i < pnts.cols; i++)
+		{
+			float pnts3D_data4 = *(pnts3D_row4 + i);
+
+			float pnts3D_data1 = *(pnts3D_row1 + i) / pnts3D_data4;
+			float pnts3D_data2 = *(pnts3D_row2 + i) / pnts3D_data4;
+			float pnts3D_data3 = *(pnts3D_row3 + i) / pnts3D_data4;
+			trimesh::point p(pnts3D_data1, pnts3D_data2, pnts3D_data3);
+			if (trimesh::length(p) < 1000)
+			{
+				debug->vertices.push_back(p);
+			}
+		}
+		debug->write(pathPrefix + "debug.ply");
+	}
 
 #endif
 

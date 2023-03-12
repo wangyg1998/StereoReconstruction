@@ -25,15 +25,16 @@ cv::Mat CalWrappedPhase(std::vector<std::shared_ptr<cv::Mat>> images)
 
 		for (int j = 0; j < images.front()->cols; j++)
 		{
-			*wrapped_phase_data++ = atan2(((float)(*img4_data++) - (float)(*img2_data++)), ((float)(*img1_data++) - (float)(*img3_data++)));
+			//[-M_PI, M_PI]-->[0, 2 * M_PI]
+			*wrapped_phase_data++ = atan2(((float)(*img4_data++) - (float)(*img2_data++)), ((float)(*img1_data++) - (float)(*img3_data++))) + M_PIf;
 		}
 	}
 
-	if (false)
+	if (true)
 	{
 		for (int i = 0; i < wrapped_phase.cols; ++i)
 		{
-			std::cout << wrapped_phase.at<float>(0, i) << ", ";
+			std::cout << wrapped_phase.at<float>(wrapped_phase.rows / 2, i) << ", ";
 		}
 		std::cout << std::endl;
 	}
@@ -48,7 +49,7 @@ void decodeGrayCode(std::vector<std::shared_ptr<cv::Mat>> images, cv::Mat &resul
 	uchar thresh = 130;
 	for (int i = 0; i < images.size(); ++i)
 	{
-		cv::threshold(*images[i].get(), *images[i].get(), thresh, 1, CV_THRESH_BINARY);
+		cv::threshold(*images[i].get(), *images[i].get(), thresh, 1, cv::THRESH_BINARY);
 	}
 
 	//格雷码转二进制码 images[0]是高位
@@ -102,7 +103,7 @@ void UnwrappedPhaseGraycodeMethod(cv::Mat &wrapped_phase, cv::Mat &unwrapped_pha
 	uchar thresh = 130;
 	for (int i = 0; i < images.size(); ++i)
 	{
-		cv::threshold(*images[i].get(), *images[i].get(), thresh, 1, CV_THRESH_BINARY);
+		cv::threshold(*images[i].get(), *images[i].get(), thresh, 1, cv::THRESH_BINARY);
 	}
 
 	//格雷码转二进制码 images[0]是高位
@@ -133,7 +134,7 @@ void UnwrappedPhaseGraycodeMethod(cv::Mat &wrapped_phase, cv::Mat &unwrapped_pha
 	{
 		for (int i = 0; i < phase_series.cols; ++i)
 		{
-			std::cout << phase_series.at<float>(0, i) << ", ";
+			std::cout << phase_series.at<float>(phase_series.rows / 2, i) << ", ";
 		}
 		std::cout << std::endl;
 	}
@@ -152,19 +153,17 @@ void UnwrappedPhaseGraycodeMethod(cv::Mat &wrapped_phase, cv::Mat &unwrapped_pha
 
 void find_featurepionts_single_match(cv::Mat &leftphase, cv::Mat &rightphase, std::vector<cv::Point2f> &leftkeypoint, std::vector<cv::Point2f> &rightkeypoint)
 {
-	int nr = leftphase.rows;
-	int nc = leftphase.cols;
 	int x, y, k;
 	float left;
 	cv::Point2f fleft, fright;
 	float PHASE_THRESHOLD = 0.01;
 
-	for (y = 0; y < nr; y += 1)
+	for (y = 0; y < leftphase.rows; y += 1)
 	{
 		float *left_phase_data = leftphase.ptr<float>(y);
 		float *right_phase_data = rightphase.ptr<float>(y);
 
-		for (x = 0; x < nc; x++)
+		for (x = 0; x < leftphase.cols; x++)
 		{
 			left = *left_phase_data++;
 
@@ -173,11 +172,11 @@ void find_featurepionts_single_match(cv::Mat &leftphase, cv::Mat &rightphase, st
 				right_phase_data = rightphase.ptr<float>(y);
 				k = 0;
 
-				while ((abs(left - *right_phase_data++) > PHASE_THRESHOLD) && (k < nc))
+				while ((abs(left - *right_phase_data++) > PHASE_THRESHOLD) && (k < leftphase.cols))
 				{
 					k++;
 				}
-				if (k < nc)
+				if (k < leftphase.cols)
 				{
 					fleft.x = x;
 					fleft.y = y;
@@ -309,7 +308,6 @@ void triangulate_stereo(const cv::Mat &K1,
 	p3d = approximate_ray_intersection(v1, w1, v2, w2, distance);
 }
 
-
 void reconstruct_model_patch_center(cv::Mat const &pattern_image, cv::Mat const &min_max_image, cv::Size const &projector_size, int threshold, double max_dist)
 {
 	CalibrationData calib;
@@ -375,7 +373,7 @@ void reconstruct_model_patch_center(cv::Mat const &pattern_image, cv::Mat const 
 	}
 
 	std::shared_ptr<trimesh::TriMesh> debug(new trimesh::TriMesh);
-	cv::Mat Rt = calib.R.t();//单位正交矩阵的逆等于其转置矩阵
+	cv::Mat Rt = calib.R.t(); //单位正交矩阵的逆等于其转置矩阵
 	unsigned n = 0;
 	for (auto iter = proj_points.begin(); iter != proj_points.end(); ++iter)
 	{
