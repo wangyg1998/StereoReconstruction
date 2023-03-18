@@ -66,7 +66,6 @@ static bool cornerDetect(std::shared_ptr<cv::Mat> image,
 			pt /= scale;
 		}
 	}
-	
 
 	cornerSubPix(*image.get(),
 	             image_points,
@@ -199,6 +198,48 @@ bool calib_stereo(std::vector<std::shared_ptr<cv::Mat>> left_images,
 	fs1 << "P1" << P1;
 	fs1 << "P2" << P2;
 	fs1 << "Q" << Q;
+
+	//显示立体矫正结果
+	{
+		cv::Mat map1x, map1y, map2x, map2y;
+		cv::Mat imgU1, imgU2, imgRectify, img1Teste, img2Teste;
+
+		img1Teste = left_images.front()->clone();
+		img2Teste = right_images.front()->clone();
+
+		cvtColor(img1Teste, img1Teste, cv::COLOR_GRAY2RGB);
+		cvtColor(img2Teste, img2Teste, cv::COLOR_GRAY2RGB);
+
+		initUndistortRectifyMap(K1, D1, R1, P1, img1Teste.size(), CV_32FC1, map1x, map1y);
+		initUndistortRectifyMap(K2, D2, R2, P2, img2Teste.size(), CV_32FC1, map2x, map2y);
+
+		remap(img1Teste, imgU1, map1x, map1y, cv::INTER_LINEAR, cv::BORDER_CONSTANT, cv::Scalar());
+		remap(img2Teste, imgU2, map2x, map2y, cv::INTER_LINEAR, cv::BORDER_CONSTANT, cv::Scalar());
+
+		//To display the rectified images
+		imgRectify = cv::Mat::zeros(imgU1.rows, imgU1.cols * 2 + 10, imgU1.type());
+
+		imgU1.copyTo(imgRectify(cv::Range::all(), cv::Range(0, imgU2.cols)));
+		imgU2.copyTo(imgRectify(cv::Range::all(), cv::Range(imgU2.cols + 10, imgU2.cols * 2 + 10)));
+
+		//If it is too large to fit on the screen, scale down by 2, it should fit.
+		if (imgRectify.cols > 1920)
+		{
+			float scale = imgRectify.cols / 1920;
+			resize(imgRectify, imgRectify, cv::Size(imgRectify.cols / scale, imgRectify.rows / scale));
+		}
+
+		//To draw the lines in the rectified image
+		for (int j = 0; j < imgRectify.rows; j += 16)
+		{
+			cv::Point p1 = cv::Point(0, j);
+			cv::Point p2 = cv::Point(imgRectify.cols * 2, j);
+			line(imgRectify, p1, p2, CV_RGB(255, 0, 0));
+		}
+
+		imshow("Rectified", imgRectify);
+		cv::waitKey(0);
+	}
 }
 
 void undistort_rectify(std::string calib_file, const cv::Mat* left_image, const cv::Mat* right_image, cv::Mat* rectified_left, cv::Mat* rectified_right)
