@@ -9,6 +9,7 @@
 *.bin
 *.idb
 *.VC.db
+*.bmp
 VTune Profiler Results/
 
 # Windows build temp cmake file
