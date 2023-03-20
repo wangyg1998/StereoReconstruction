@@ -198,6 +198,7 @@ bool calib_stereo(std::vector<std::shared_ptr<cv::Mat>> left_images,
 	fs1 << "P1" << P1;
 	fs1 << "P2" << P2;
 	fs1 << "Q" << Q;
+	fs1.release();
 
 	//显示立体矫正结果
 	{
@@ -236,7 +237,7 @@ bool calib_stereo(std::vector<std::shared_ptr<cv::Mat>> left_images,
 			cv::Point p2 = cv::Point(imgRectify.cols * 2, j);
 			line(imgRectify, p1, p2, CV_RGB(255, 0, 0));
 		}
-
+		cv::imwrite("..\\..\\Data\\Rectified.bmp", imgRectify);
 		imshow("Rectified", imgRectify);
 		cv::waitKey(0);
 	}

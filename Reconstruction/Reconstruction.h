@@ -11,8 +11,6 @@ void decodeGrayCode(std::vector<std::shared_ptr<cv::Mat>> images, cv::Mat &resul
 
 void UnwrappedPhaseGraycodeMethod(cv::Mat &wrapped_phase, cv::Mat &unwrapped_phase, std::vector<std::shared_ptr<cv::Mat>> images);
 
-void find_featurepionts_single_match(cv::Mat &leftphase, cv::Mat &rightphase, std::vector<cv::Point2f> &leftkeypoint, std::vector<cv::Point2f> &rightkeypoint);
-
 cv::Point3d approximate_ray_intersection(const cv::Point3d &v1,
                                          const cv::Point3d &q1,
                                          const cv::Point3d &v2,

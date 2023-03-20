@@ -155,7 +155,7 @@ int main()
 	camera.SetEnumValue("PixelFormat", PixelType_Gvsp_Mono8);
 
 	MV_CC_SetExposureAutoMode(camera.getDeviceHandle(), 0);
-	MV_CC_SetExposureTime(camera.getDeviceHandle(), 50000);
+	MV_CC_SetExposureTime(camera.getDeviceHandle(), 4000);
 
 	//MV_CC_SetExposureAutoMode(camera.getDeviceHandle(), 2);
 	//MV_CC_SetAutoExposureTimeLower(camera.getDeviceHandle(), 25000);
@@ -188,7 +188,7 @@ int main()
 				}
 				else
 				{
-					cv::imwrite(pathPrefix + "Calibration_imgs\\" + std::to_string(iter) + "\\" + imgsName[i] + ".bmp", img);
+					cv::imwrite(pathPrefix + "Single_Calibration_imgs\\" + std::to_string(iter) + "\\" + imgsName[i] + ".bmp", img);
 				}
 			}
 			else
@@ -206,7 +206,7 @@ int main()
 	images_list_.resize(3);
 	for (int k = 0; k < 3; ++k)
 	{
-		std::string filePath = pathPrefix + "Calibration_imgs\\" + std::to_string(k);
+		std::string filePath = pathPrefix + "Single_Calibration_imgs\\" + std::to_string(k);
 		std::vector<std::string> files;
 		getAllFiles(filePath, files, "bmp");
 		std::vector<std::shared_ptr<cv::Mat>>& images = images_list_[k];
@@ -218,7 +218,7 @@ int main()
 			*images[i].get() = cv::imread(files[i], cv::IMREAD_GRAYSCALE);
 		}
 	}
-	sr::projector_Camera_Calibration(images_list_, pathPrefix + "calib.yml", 11, 8, 15, 1920, 1080);
+	sr::projector_Camera_Calibration(images_list_, pathPrefix + "calib.yml", 17, 17, 10, 1920, 1080);
 
 	//单目重建数据采集
 #elif 0
@@ -347,11 +347,11 @@ int main()
 		if (i == 0)
 		{
 			//左相机
-			MV_CC_SetExposureTime(camera.getDeviceHandle(), 60000);
+			MV_CC_SetExposureTime(camera.getDeviceHandle(), 100000);
 		}
 		else
 		{
-			MV_CC_SetExposureTime(camera.getDeviceHandle(), 150000);
+			MV_CC_SetExposureTime(camera.getDeviceHandle(), 200000);
 		}
 		if (camera.StartGrabbing() != MV_OK)
 		{
@@ -513,8 +513,6 @@ int main()
 	std::vector<std::string> leftFile, rightFile;
 	getAllFiles(pathPrefix + "Dual_Calib_Imgs\\left", leftFile, "bmp");
 	getAllFiles(pathPrefix + "Dual_Calib_Imgs\\right", rightFile, "bmp");
-	//getAllFiles("D:\\Z_TestFolder\\structured_light_scanner\\myimages\\Model1\\Calib\\L", leftFile, "bmp");
-	//getAllFiles("D:\\Z_TestFolder\\structured_light_scanner\\myimages\\Model1\\Calib\\R", rightFile, "bmp");
 	std::vector<std::shared_ptr<cv::Mat>> leftImages(leftFile.size()), rightImages(rightFile.size());
 	for (int i = 0; i < leftFile.size(); ++i)
 	{
@@ -528,20 +526,15 @@ int main()
 		*rightImages[i].get() = cv::imread(rightFile[i], cv::IMREAD_GRAYSCALE);
 		std::cout << rightFile[i] << std::endl;
 	}
-	sr::calib_stereo(leftImages, rightImages, 11, 8, 15, pathPrefix + "calib.yml");
-	//sr::calib_stereo(leftImages, rightImages, 7, 6, 15, pathPrefix + "calib.yml");
 
-	sr::undistort_rectify(pathPrefix + "calib.yml", leftImages[0].get(), rightImages[0].get(), leftImages[0].get(), rightImages[0].get());
-	cv::imwrite(pathPrefix + "left.bmp", *leftImages[0].get());
-	cv::imwrite(pathPrefix + "right.bmp", *rightImages[0].get());
+	//注意查看角点的顺序是否正确，否则会导致矫正后图像出现非常离谱的扭曲
+	sr::calib_stereo(leftImages, rightImages, 17, 17, 10, pathPrefix + "calib.yml");
 
 	//双目重建
-#elif 1
+#elif 0
 	std::vector<std::string> leftFile, rightFile;
 	getAllFiles(pathPrefix + "Dual_Recon_Imgs\\left", leftFile, ".bmp");
 	getAllFiles(pathPrefix + "Dual_Recon_Imgs\\right", rightFile, ".bmp");
-	//getAllFiles("D:\\Z_TestFolder\\structured_light_scanner\\myimages\\Model1\\L", leftFile, ".bmp");
-	//getAllFiles("D:\\Z_TestFolder\\structured_light_scanner\\myimages\\Model1\\R", rightFile, ".bmp");
 	std::vector<std::shared_ptr<cv::Mat>> leftImage(leftFile.size()), rightImage(rightFile.size());
 	for (int i = 0; i < leftFile.size(); ++i)
 	{
@@ -560,11 +553,6 @@ int main()
 	for (int i = 0; i < leftImage.size(); ++i)
 	{
 		sr::undistort_rectify(pathPrefix + "calib.yml", leftImage[i].get(), rightImage[i].get(), leftImage[i].get(), rightImage[i].get());
-		if (i == 1)
-		{
-			cv::imwrite(pathPrefix + "left.bmp", *leftImage[i].get());
-			cv::imwrite(pathPrefix + "right.bmp", *rightImage[i].get());
-		}
 	}
 
 	//解码
@@ -611,9 +599,13 @@ int main()
 			}
 		}
 	}
-	//sr::find_featurepionts_single_match(leftUnwrappedPhase, rightUnwrappedPhase, leftPoints, rightPoints);
 	std::cout << "leftPoints.size(): " << leftPoints.size() << std::endl;
 
+	//重建
+	//
+	//平行式光轴方案，重建出的Z值不连续的原因：
+	//目标物体在视野范围的占比过小，且相机距离过近，且对应点查找不是亚像素匹配，导致一单位像素对应的Z轴长度过长。
+	//所以相机选型时要注意！要根据视野范围、工作距离、精度要求，选取合适焦距的镜头、合适像素的相机！
 	if (true)
 	{
 		//最小二乘求解目标点
@@ -630,17 +622,6 @@ int main()
 		cv::cv2eigen(P2, T2);
 		std::cout << T1 << std::endl;
 		std::cout << T2 << std::endl;
-		Eigen::Matrix<float, 4, 4> M1, M2;
-		M1.setIdentity();
-		M2.setIdentity();
-		M1.topLeftCorner(3, 4) = T1;
-		M2.topLeftCorner(3, 4) = T2;
-		std::cout << M1 << std::endl;
-		std::cout << M2 << std::endl;
-		M1 = M1.inverse();
-		M2 = M2.inverse();
-		std::cout << M1 << std::endl;
-		std::cout << M2 << std::endl;
 #pragma omp parallel for
 		for (int i = 0; i < leftPoints.size(); ++i)
 		{
@@ -667,45 +648,12 @@ int main()
 			trimesh::point p(eigenVectors(0, minValue.second).real(), eigenVectors(1, minValue.second).real(), eigenVectors(2, minValue.second).real());
 			float scale = eigenVectors(3, minValue.second).real();
 			p /= scale;
+
 			debug->vertices[i] = p;
 			if (trimesh::dist(p, trimesh::point(0.f)) < 1000)
 			{
 				rmv[i] = false;
 			}
-			//if (trimesh::dist(p, trimesh::point(180, 100, 650)) < 10)
-			//{
-			//	rmv[i] = false;
-			//	std::cout << p << std::endl;
-			//	Eigen::Matrix<float, 4, 1> tp1, tp2, l, r;
-			//	tp1 << p1.x, p1.y, 1.f, 1.f;
-			//	tp2 << p2.x, p2.y, 1.f, 1.f;
-			//	l << 0.f, 0.f, 0.f, 1.f;
-			//	r << 0.f, 0.f, 0.f, 1.f;
-			//	/*std::cout << M1 * tp1 << std::endl;
-			//	std::cout << M2 * tp2 << std::endl;
-			//	std::cout << M1 * l << std::endl;
-			//	std::cout << M2 * r << std::endl;
-			//	std::cout << std::endl;*/
-
-			//	auto a = M1 * tp1;
-			//	auto b = M2 * tp2;
-			//	auto c = M1 * l;
-			//	auto d = M2 * r;
-			//	cv::Point3d a2(a(0, 0), a(1,0), a(2,0));
-			//	cv::Point3d b2(b(0, 0), b(1, 0), b(2, 0));
-			//	cv::Point3d c2(c(0, 0), c(1, 0), c(2, 0));
-			//	cv::Point3d d2(d(0, 0), d(1, 0), d(2, 0));
-
-			//	cv::Point3d direction1 = a2 - c2;
-			//	cv::Point3d direction2 = b2 - d2;
-			//	cv::Point3d result = sr::approximate_ray_intersection(direction1, c2, direction2, d2);
-			//	std::cout << result << std::endl;
-			//	std::cout << direction1 << std::endl<< direction2 << std::endl;
-			//	std::cout << std::endl;
-
-			//	debug->vertices[i] = trimesh::point(result.x, result.y, result.z);
-
-			//}
 		}
 		trimesh::remove_vertices(debug.get(), rmv);
 		debug->write(pathPrefix + "debug.ply");

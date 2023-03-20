@@ -151,45 +151,6 @@ void UnwrappedPhaseGraycodeMethod(cv::Mat &wrapped_phase, cv::Mat &unwrapped_pha
 	}
 }
 
-void find_featurepionts_single_match(cv::Mat &leftphase, cv::Mat &rightphase, std::vector<cv::Point2f> &leftkeypoint, std::vector<cv::Point2f> &rightkeypoint)
-{
-	int x, y, k;
-	float left;
-	cv::Point2f fleft, fright;
-	float PHASE_THRESHOLD = 0.01;
-
-	for (y = 0; y < leftphase.rows; y += 1)
-	{
-		float *left_phase_data = leftphase.ptr<float>(y);
-		float *right_phase_data = rightphase.ptr<float>(y);
-
-		for (x = 0; x < leftphase.cols; x++)
-		{
-			left = *left_phase_data++;
-
-			if (left > 2 * CV_PI)
-			{
-				right_phase_data = rightphase.ptr<float>(y);
-				k = 0;
-
-				while ((abs(left - *right_phase_data++) > PHASE_THRESHOLD) && (k < leftphase.cols))
-				{
-					k++;
-				}
-				if (k < leftphase.cols)
-				{
-					fleft.x = x;
-					fleft.y = y;
-					fright.x = k;
-					fright.y = y;
-					leftkeypoint.push_back(fleft);
-					rightkeypoint.push_back(fright);
-				}
-			}
-		}
-	}
-}
-
 cv::Point3d approximate_ray_intersection(const cv::Point3d &v1,
                                          const cv::Point3d &q1,
                                          const cv::Point3d &v2,
