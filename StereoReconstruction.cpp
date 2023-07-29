@@ -19,7 +19,7 @@
 #include "MvCamera/MvCamera.h"
 #include "Reconstruction/Reconstruction.h"
 
-std::string pathPrefix = "D:\\Z_TestFolder\\StereoReconstruction\\Data\\";
+std::string pathPrefix = "D:\\Algorithms\\StereoReconstruction\\Data\\";
 
 static void getAllFiles(std::string path, std::vector<std::string>& files, std::string fileType)
 {
